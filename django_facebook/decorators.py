@@ -7,6 +7,9 @@ from django.utils.functional import wraps
 
 import logging
 from django_facebook.api import get_persistent_graph
+
+from django_facebook.canvas import generate_oauth_url
+
 logger = logging.getLogger(__name__)
 
 
@@ -26,7 +29,10 @@ def facebook_required(view_func=None, scope=fb_settings.FACEBOOK_DEFAULT_SCOPE,
     def actual_decorator(view_func):
         @wraps(view_func, assigned=available_attrs(view_func))
         def _wrapped_view(request, *args, **kwargs):
-            oauth_url, redirect_uri = get_oauth_url(request, scope_list)
+            if canvas:
+                oauth_url, redirect_uri = generate_oauth_url(scope_list)
+            else:
+                oauth_url, redirect_uri = get_oauth_url(request, scope_list)
             if test_permissions(request, scope_list, redirect_uri):
                 return view_func(request, *args, **kwargs)
             else:
@@ -58,8 +64,11 @@ def facebook_required_lazy(view_func=None,
     def actual_decorator(view_func):
         @wraps(view_func, assigned=available_attrs(view_func))
         def _wrapped_view(request, *args, **kwargs):
-            oauth_url, redirect_uri = get_oauth_url(request, scope_list,
-                                                    extra_params=extra_params)
+            if canvas:
+                oauth_url, redirect_uri = generate_oauth_url(scope_list, extra_params=extra_params)
+            else:
+                oauth_url, redirect_uri = get_oauth_url(request, scope_list, extra_params=extra_params)
+                
             try:
                 # call get persistent graph and convert the
                 # token with correct redirect uri
